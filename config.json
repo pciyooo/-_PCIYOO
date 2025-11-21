@@ -1,0 +1,25 @@
+{
+    "profile": {
+        "name": "PCIYOO",
+        "role": "动画师 | 合成师 | 插画师",
+        "bio": "这是我的个人简介。拥有5年行业经验，擅长动作设计与后期合成。",
+        "email": "CPC1679878179@YEAH.NET",
+        "wechat": "pciyoo",
+        "qq": "1679878179"
+    },
+    "social_links": [
+        {
+            "name": "Bilibili",
+            "url": "https://space.bilibili.com/1654512?spm_id_from=333.1365.0.0"
+        },
+        {
+            "name": "X",
+            "url": "https://x.com/PCIYOOO"
+        }
+    ],
+    "sections": {
+        "animation": "原动画展示",
+        "compositing": "后期合成解析",
+        "illustration": "插画作品"
+    }
+}
