@@ -1,0 +1,496 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCIYOO | Portfolio</title>
+    <style>
+        :root { 
+            --bg: #121212; 
+            --sidebar-bg-blend: rgba(0, 0, 0, 0.7); 
+            --content-panel-bg-blend: rgba(255, 255, 255, 0.1); 
+            --text: #e0e0e0; --text-sub: #888; 
+            --accent: #4f86f7; --border: #2a2a2a;
+            --sidebar-width: 300px;
+        }
+        
+        /* 粒子垂直运动的关键帧 */
+        @keyframes flow { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-100vh) scale(0.5); opacity: 0; } }
+        
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); color: var(--text); 
+            display: flex; min-height: 100vh;
+        }
+        a { color: inherit; text-decoration: none; transition: 0.2s; }
+        
+        /* 悬停放大效果基础类 */
+        .hover-scale {
+            transition: transform 0.3s ease-out, box-shadow 0.3s;
+            will-change: transform;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* --- 1. 固定底层背景 (模糊和色延伸基础) --- */
+        .color-adapt-base {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('assets/banner.jpg');
+            background-size: cover; background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2; 
+            transform: scale(1.1); 
+            filter: blur(10px); 
+        }
+
+        /* --- 2. 粒子容器 (z-index:-1 确保它在最底层背景之上，内容之下) --- */
+        .particles { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: -1; 
+            pointer-events: none; overflow: hidden;
+            opacity: 0.9;
+        }
+        .particle { 
+            position: absolute; 
+            border-radius: 50%;
+            animation-name: flow; 
+            animation-timing-function: linear; 
+            animation-iteration-count: infinite; 
+            will-change: transform, opacity; 
+            /* V4.8: 移除默认背景，由 JS 注入纯白背景和透明度 */
+        }
+
+        /* --- 3. 左侧固定侧边栏 (深色半透明模拟色延伸) --- */
+        aside {
+            width: var(--sidebar-width); 
+            background: var(--sidebar-bg-blend); 
+            backdrop-filter: blur(5px); 
+            border-right: 1px solid rgba(255, 255, 255, 0.1); 
+            position: fixed; top: 0; bottom: 0; left: 0;
+            padding: 40px 30px; display: flex; flex-direction: column; z-index: 10; 
+            box-shadow: 2px 0 20px rgba(0,0,0,0.8); 
+        }
+        
+        /* 头像修复及优化 */
+        .profile-header { margin-bottom: 40px; }
+        .avatar-wrapper { 
+            display: inline-block; margin-bottom: 20px; 
+            transition: transform 0.3s ease-out, box-shadow 0.3s; 
+        }
+        .avatar { 
+            width: 100px; height: 100px; border-radius: 50%; object-fit: cover; 
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            transition: border-color 0.3s;
+        }
+        .avatar-wrapper:hover {
+            transform: scale(1.1); 
+            box-shadow: 0 0 20px rgba(79, 134, 247, 0.6); 
+        }
+        .avatar-wrapper:hover .avatar {
+            border-color: var(--accent);
+        }
+        
+        /* 标题阴影 */
+        .name { 
+            font-size: 1.8rem; font-weight: 800; margin: 0 0 5px 0; color: #fff; 
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 5px rgba(0, 0, 0, 0.5); 
+        }
+        .role { font-size: 0.9rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; }
+        .bio { margin-top: 20px; font-size: 0.9rem; color: #aaa; line-height: 1.5; }
+        
+        /* 侧边栏导航优化 (只放大文本) */
+        nav { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+        .nav-item { 
+            padding: 10px 0; font-weight: 500; display: flex; justify-content: space-between; align-items: center; 
+            transition: color 0.2s, transform 0.2s; 
+        }
+        .nav-item:hover { color: var(--accent); transform: translateX(5px); }
+        .nav-item span { transition: font-size 0.2s; }
+        .nav-item:hover span { font-size: 1.05em; } 
+
+        /* 联系方式 (弹窗修复) */
+        .contact-group { margin-top: 10px; }
+        .contact-container { position: relative; display: block; margin: 5px 0; }
+        .contact-btn { 
+            color: var(--accent); cursor: pointer; font-weight: bold; 
+            display: inline-flex; align-items: center; gap: 5px; padding: 5px 0; 
+            transition: color 0.2s, font-size 0.2s;
+        }
+        .contact-btn:hover { font-size: 1.05em; color: #fff; }
+
+        .contact-popup { 
+            visibility: hidden; opacity: 0; position: absolute; top: 50%; left: 100%; 
+            transform: translateY(-50%); background: #333; color: #fff; padding: 8px 12px; 
+            border-radius: 6px; font-size: 0.85rem; white-space: nowrap; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: opacity 0.2s, left 0.2s; 
+            pointer-events: none; z-index: 9999; 
+        }
+        .contact-popup::after { 
+            content: ""; position: absolute; top: 50%; left: -10px; margin-top: -5px; 
+            border-width: 5px; border-style: solid; border-color: transparent #333 transparent transparent; 
+        }
+        .contact-container.active .contact-popup { visibility: visible; opacity: 1; left: calc(100% + 10px); }
+
+        /* 社交链接优化 (只放大文本/图标) */
+        .footer-links { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .social-btn { 
+            font-size: 0.85rem; color: var(--text-sub); padding: 5px 10px; border: 1px solid #333; border-radius: 20px;
+            display: flex; align-items: center; gap: 5px; transition: border-color 0.2s, color 0.2s, transform 0.2s;
+        }
+        .social-btn:hover { border-color: var(--accent); color: #fff; }
+        .social-icon { font-size: 1.1em; line-height: 1; opacity: 0.7; transition: font-size 0.2s, opacity 0.2s; }
+        .social-btn:hover .social-icon { font-size: 1.3em; opacity: 1; }
+
+
+        /* --- 4. 右侧主要内容区 --- */
+        main { 
+            margin-left: var(--sidebar-width); flex: 1; padding: 0; 
+            position: relative; 
+        }
+        
+        /* 浅色内容面板：最大模糊 + 浅色蒙版 */
+        .content-panel {
+            background: var(--content-panel-bg-blend); 
+            min-height: 100vh;
+            backdrop-filter: blur(10px); 
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        /* 头部 Banner (清晰) */
+        .hero-banner {
+            height: 300px; width: 100%; 
+            background-image: url('assets/banner.jpg');
+            background-size: cover; background-position: center;
+            position: relative; margin-bottom: 0; 
+            z-index: 1; 
+        }
+
+        /* 渐变蒙版，完美衔接 Banner 和内容面板 (优化) */
+        .hero-banner::after {
+            content: ""; position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
+            /* 使用更柔和的渐变过渡 */
+            background: linear-gradient(to top, var(--content-panel-bg-blend) 50%, transparent 100%);
+            z-index: 2; 
+        }
+        
+        .content-wrapper { padding: 0 60px 100px; max-width: 1400px; margin: 0 auto; position: relative; z-index: 3; }
+        
+        section { margin-bottom: 100px; scroll-margin-top: 40px; }
+        h2 { 
+            font-size: 2rem; margin-bottom: 30px; border-bottom: 1px solid #222; padding-bottom: 15px; color: #fff; 
+            /* 主内容区标题阴影 */
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* --- 布局安全修正 (V4.5) --- */
+        .item, .art-item { 
+            box-sizing: border-box; 
+            max-width: 100%; 
+            background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden; transition: 0.3s; 
+        } 
+        .art-item img, .comp-media, video { 
+            max-width: 100%; 
+            width: 100%; display: block; 
+        }
+        /* --- 布局安全修正结束 --- */
+        
+        /* 视频/合成 Grid 样式 */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 30px; }
+        .grid.single-col-comp { grid-template-columns: 1fr; max-width: 800px; margin: 0 auto; }
+
+        .item:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        
+        /* --- Illustration/Art 区 Masonry 样式 --- */
+        .masonry { column-count: 3; column-gap: 25px; }
+        .masonry.single-col { column-count: 1; max-width: 800px; margin: 0 auto; }
+
+        .art-item { margin-bottom: 25px; cursor: pointer; }
+        .art-item:hover { transform: scale(1.03); box-shadow: 0 10px 30px rgba(0,0,0,0.3); } 
+        
+        @media (max-width: 768px) { .masonry { column-count: 1; } }
+
+        /* --- 合成对比修复 --- */
+        .comp-wrapper { position: relative; aspect-ratio: 16/9; overflow: hidden; cursor: ew-resize; }
+        .comp-media { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        .comp-wrapper video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+        .slider-input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 10; margin: 0; cursor: ew-resize; }
+        .handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #fff; z-index: 5; pointer-events: none; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .handle::after { content: "↔"; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 30px; height: 30px; background: #fff; color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        
+        /* --- Lightbox 浮动模态框修复 (V4.7) --- */
+        .lightbox { 
+            background: rgba(0,0,0,0.85); 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 1000; justify-content: center; align-items: center; 
+        }
+        
+        .lightbox-viewer {
+            max-width: 90vw; max-height: 90vh;
+            background: var(--bg); 
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: relative; 
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        .lightbox-viewer img {
+            max-width: 100%; 
+            max-height: 90vh; 
+            object-fit: contain;
+            transition: opacity 0.3s;
+            display: block;
+            padding: 20px; 
+        }
+
+        .nav-btn {
+            position: absolute; 
+            top: 50%; transform: translateY(-50%);
+            background: rgba(0,0,0,0.4); 
+            color: #fff; border: none;
+            padding: 10px 15px; 
+            font-size: 3rem; 
+            cursor: pointer;
+            z-index: 1010; 
+            transition: background 0.2s, opacity 0.2s;
+            width: 50px; 
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; 
+            border-radius: 8px; 
+        }
+        
+        .lightbox-viewer:hover .nav-btn {
+            opacity: 1; 
+        }
+        .nav-btn:hover { 
+            background: rgba(0,0,0,0.7); 
+            opacity: 1; 
+        }
+        .nav-btn.prev { left: 0; border-radius: 12px 0 0 12px; height: calc(100% - 40px); } 
+        .nav-btn.next { right: 0; border-radius: 0 12px 12px 0; height: calc(100% - 40px); }
+
+        .lightbox-close { 
+            position: absolute; 
+            top: 15px; right: 20px; 
+            color: #fff; 
+            font-size: 2rem; cursor: pointer; z-index: 1020; opacity: 0.8; 
+            transition: opacity 0.2s, transform 0.2s; 
+            padding: 5px; 
+        }
+        .lightbox-close:hover { opacity: 1; transform: scale(1.1); }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="profile-header">
+            <div class="avatar-wrapper"><img src="assets/avatar.jpg" class="avatar"></div>
+            <h1 class="name">PCIYOO</h1>
+            <div class="role">动画师 | 合成师 | 插画师</div>
+            <div class="bio">这是我的个人简介。拥有5年行业经验，擅长动作设计与后期合成。</div>
+            
+            <div class="contact-group">
+                
+    <div class="contact-container" id="contact-Email">
+        <div class="contact-btn" onclick="copyContact('CPC1679878179@YEAH.NET', 'contact-Email')">
+           ✉️ Email
+        </div>
+        <div class="contact-popup">
+            CPC1679878179@YEAH.NET <br><span style="font-size:0.7rem; opacity:0.7">(点击已复制)</span>
+        </div>
+    </div>
+    
+                
+    <div class="contact-container" id="contact-Wechat">
+        <div class="contact-btn" onclick="copyContact('pciyoo', 'contact-Wechat')">
+           💬 Wechat
+        </div>
+        <div class="contact-popup">
+            pciyoo <br><span style="font-size:0.7rem; opacity:0.7">(点击已复制)</span>
+        </div>
+    </div>
+    
+                
+    <div class="contact-container" id="contact-QQ">
+        <div class="contact-btn" onclick="copyContact('1679878179', 'contact-QQ')">
+           🐧 Qq
+        </div>
+        <div class="contact-popup">
+            1679878179 <br><span style="font-size:0.7rem; opacity:0.7">(点击已复制)</span>
+        </div>
+    </div>
+    
+            </div>
+        </div>
+        
+        <nav>
+            <a href="#animation" class="nav-item">
+                原动画展示 
+                <span class="nav-count">VIDEO</span>
+            </a>
+            <a href="#compositing" class="nav-item">
+                后期合成解析
+                <span class="nav-count">COMP</span>
+            </a>
+            <a href="#illustration" class="nav-item">
+                插画作品
+                <span class="nav-count">ART</span>
+            </a>
+        </nav>
+
+        <div class="footer-links">
+            <a href="https://space.bilibili.com/1654512?spm_id_from=333.1365.0.0" target="_blank" class="social-btn"><span class="social-icon" role="img" aria-label="Bilibili icon">📺</span><span>Bilibili</span></a><a href="https://x.com/PCIYOOO" target="_blank" class="social-btn"><span class="social-icon" role="img" aria-label="X icon">✖️</span><span>X</span></a>
+        </div>
+    </aside>
+
+    <main>
+        <div class="content-panel"> <div class="hero-banner">
+                </div>
+            
+            <div class="content-wrapper">
+<section id="animation"><h2>原动画展示</h2><div class="grid"><div class="item"><video controls loop playsinline><source src="videos/116-118_V2.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/S01_C115_LO3.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/S01_C116_LO_V02.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T01_一原.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T02_一原.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T03_一原.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T04_CAO.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T05_CAO.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T06_CAO.mp4" type="video/mp4"></video></div><div class="item"><video controls loop playsinline><source src="videos/T_09_一原.mp4" type="video/mp4"></video></div></div></section><section id="compositing"><h2>后期合成解析</h2><div class="grid"></div></section><section id="illustration"><h2>插画作品</h2><div class="masonry"><div class="art-item" onclick="openL(0)"><img src="illustrations/SHS1_E11_S03_C059A-r.png" loading="lazy"></div><div class="art-item" onclick="openL(1)"><img src="illustrations/SHS1_E11_S03_C066_一原_v01-r.png" loading="lazy"></div><div class="art-item" onclick="openL(2)"><img src="illustrations/SHS1_E12_S01_C084_草原_阿卡-r.png" loading="lazy"></div></div></section>
+            </div> </div> </main>
+
+    <div class="lightbox" id="lightbox" onclick="closeL()">
+        <div class="lightbox-viewer" onclick="event.stopPropagation()">
+            <span class="lightbox-close" onclick="closeL()">&times;</span>
+            <button class="nav-btn prev" onclick="navigateL(-1)">❮</button>
+            <img id="l-img" src="" alt="Artwork">
+            <button class="nav-btn next" onclick="navigateL(1)">❯</button>
+        </div>
+    </div>
+    
+    <div class="particles" id="particles-js"></div> <div class="color-adapt-base"></div> <script>
+        // 将 Python 列表转为 JS 数组
+        const ARTWORK_PATHS = ["illustrations/SHS1_E11_S03_C059A-r.png", "illustrations/SHS1_E11_S03_C066_一原_v01-r.png", "illustrations/SHS1_E12_S01_C084_草原_阿卡-r.png"];
+        let currentArtIndex = 0;
+
+        // 打开 Lightbox 并定位到指定索引
+        function openL(index) { 
+            if (ARTWORK_PATHS.length === 0) return;
+            currentArtIndex = index;
+            document.getElementById('l-img').src = ARTWORK_PATHS[currentArtIndex];
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+        
+        // 关闭 Lightbox
+        function closeL() {
+            document.getElementById('lightbox').style.display = 'none';
+        }
+
+        // Lightbox 翻页功能
+        function navigateL(direction) {
+            event.stopPropagation(); 
+            
+            currentArtIndex += direction;
+            
+            // 循环翻页逻辑
+            if (currentArtIndex < 0) {
+                currentArtIndex = ARTWORK_PATHS.length - 1;
+            } else if (currentArtIndex >= ARTWORK_PATHS.length) {
+                currentArtIndex = 0;
+            }
+            
+            // 更新图片，使用淡入效果优化切换体验
+            const img = document.getElementById('l-img');
+            img.style.opacity = 0;
+            setTimeout(() => {
+                img.src = ARTWORK_PATHS[currentArtIndex];
+                img.style.opacity = 1;
+            }, 150);
+        }
+        
+        // 键盘导航 (ESC 关闭, 左右箭头翻页)
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('lightbox').style.display === 'flex') {
+                if (e.key === 'Escape') {
+                    closeL();
+                } else if (e.key === 'ArrowLeft') {
+                    navigateL(-1);
+                } else if (e.key === 'ArrowRight') {
+                    navigateL(1);
+                }
+            }
+        });
+
+        // 视频对比同步播放功能 
+        function toggleVideoPlay(id_prefix) {
+            const vidA = document.getElementById(id_prefix + '-before');
+            const vidB = document.getElementById(id_prefix + '-after');
+            
+            if (vidA && vidB) {
+                if (!vidA.paused) {
+                    vidA.pause();
+                    vidB.pause();
+                } else {
+                    vidA.currentTime = vidB.currentTime;
+                    vidA.play();
+                    vidB.play();
+                }
+            }
+        }
+
+        // 通用联系方式复制功能 
+        function copyContact(content, boxId) {
+            const box = document.getElementById(boxId);
+
+            document.querySelectorAll('.contact-container').forEach(el => el.classList.remove('active'));
+
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(content).then(() => {
+                    box.classList.add('active');
+                    setTimeout(() => { box.classList.remove('active'); }, 2000);
+                }).catch(err => {
+                    console.error('Copy failed:', err);
+                    alert('复制失败，请手动复制: ' + content);
+                });
+            } else {
+                alert('您的浏览器不支持自动复制功能，请手动复制: ' + content);
+            }
+        }
+        
+        // 浮动粒子生成脚本 - 实现景深和视差 (V4.8 增强版)
+        (function generateParticles() {
+            const container = document.getElementById('particles-js');
+            const numParticles = 80; // 数量翻倍
+            
+            for (let i = 0; i < numParticles; i++) {
+                const p = document.createElement('div');
+                const depth = Math.random(); 
+                
+                let size;
+                let opacity; 
+
+                if (depth < 0.3) { // 远景：小、淡、慢
+                    opacity = Math.random() * 0.2 + 0.3; // 最小 0.3
+                    size = Math.random() * 1 + 3; 
+                } else if (depth < 0.7) { // 中景：中速、中等 
+                    opacity = Math.random() * 0.4 + 0.5; // 最小 0.5
+                    size = Math.random() * 2 + 5; 
+                } else { // 近景：快、大、亮
+                    opacity = Math.random() * 0.5 + 0.5; // 最小 0.5，最大 1.0
+                    size = Math.random() * 3 + 7; 
+                }
+
+                p.className = 'particle';
+
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.top = Math.random() * 100 + 'vh';
+                
+                p.style.width = p.style.height = size + 'px';
+                p.style.background = '#fff'; // 确保粒子颜色是白色
+                p.style.opacity = opacity; // 使用 JS 确定的透明度
+
+                const duration = Math.random() * 15 + 10; 
+                p.style.animationDuration = duration + 's'; 
+                p.style.animationDelay = -Math.random() * duration + 's';
+                
+                container.appendChild(p);
+            }
+        })();
+    </script>
+</body></html>
