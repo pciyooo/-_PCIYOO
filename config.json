@@ -17,6 +17,14 @@
             "url": "https://x.com/PCIYOOO"
         }
     ],
+    "projects": [
+        {
+            "title": "New Project",
+            "role": "Animator",
+            "cover": "projects/screenshot-20251128-151857.png",
+            "video": ""
+        }
+    ],
     "sections": {
         "animation": "原动画展示",
         "compositing": "后期合成解析",
